@@ -1,5 +1,5 @@
 {
   "rewrites": [
-    { "source": "/stream", "destination": "https://<icecast-origin>/stream" }
+    { "source": "/stream", "destination": "https://45.148.170.200.sslip.io/stream" }
   ]
 }
