@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>TARS DJ · Europe after dark</title>
+<meta name="description" content="TARS DJ — pixel nights over Europe. 16 cities, one live stream." />
+<link rel="stylesheet" href="src/style.css" />
+</head>
+<body>
+  <canvas id="screen" aria-label="City loop"></canvas>
+  <header class="hud hud-city">
+    <h1>TARS DJ <small>Europe</small></h1>
+    <nav class="hud-links">
+      <a href="https://github.com/morluto/rea" target="_blank" rel="noopener">RE: loficities evidence → docs/rea/</a>
+    </nav>
+  </header>
+  <div class="controls">
+    <div class="city-picker" id="cityPicker"></div>
+    <div class="player">
+      <button id="playBtn" type="button" aria-label="Play">▶ Stream</button>
+      <audio id="stream" preload="none"></audio>
+      <span id="nowPlaying" aria-live="polite"></span>
+    </div>
+  </div>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

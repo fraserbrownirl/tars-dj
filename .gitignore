@@ -1,0 +1,9 @@
+public/loops/
+*.mp4
+dist/
+node_modules/
+.vercel/
+.vercel
+.env*
+dist-preview/
+.tmp-draft-preview.md
