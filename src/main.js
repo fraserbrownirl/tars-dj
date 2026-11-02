@@ -12,9 +12,6 @@ const nowPlaying = document.getElementById("nowPlaying");
 let current = CITIES[0];
 let video = document.createElement("video");
 video.loop = true; video.muted = true; video.playsInline = true;
-// No crossOrigin: plain cross-origin playback + canvas display need no CORS.
-// (Setting it would make the video FAIL unless R2 sends CORS headers;
-// canvas taint is harmless here — we never read pixels back.)
 video.preload = "auto";
 let raf = 0, streamUrl = DEFAULT_STREAM;
 
@@ -46,7 +43,6 @@ function setCity(id) {
   const c = CITIES.find(x => x.id === id) || CITIES[0];
   current = c;
   const url = loopUrl(c);
-  // Check if file exists by probing; if 404 fall back to canvas poster
   video.src = url; video.load(); video.play().catch(() => {});
   nowPlaying.textContent = `${c.label} · 240s loop`;
   for (const b of picker.querySelectorAll("button")) b.classList.toggle("active", b.dataset.city === c.id);
@@ -71,20 +67,71 @@ function buildPicker() {
 async function initStream() {
   try {
     const r = await fetch(MANIFEST_URL, { cache: "no-store" });
-    if (r.ok) { const m = await r.json(); if (m.stream) streamUrl = m.stream; }
+    if (r.ok) {
+      const m = await r.json();
+      if (m.stream && m.stream !== streamUrl) {
+        // Only re-assign if changed and not already playing (avoids interrupting a pending play())
+        const wasPaused = audio.paused;
+        streamUrl = m.stream;
+        if (wasPaused && !audio.src) audio.src = streamUrl;
+        else if (wasPaused) audio.src = streamUrl;
+      }
+    }
   } catch {}
-  audio.src = streamUrl;
+  if (!audio.src) audio.src = streamUrl;
 }
 
+// --- Play/pause with AbortError tolerance ---
+// "play() interrupted by pause()" is Chrome's AbortError when you click twice
+// quickly, or when src is reassigned mid-play(). It's not a stream failure.
+let playPending = false;
+
 playBtn.addEventListener("click", async () => {
+  if (playPending) return;
+  playPending = true;
+  playBtn.disabled = true;
   try {
-    if (audio.paused) { await audio.play(); playBtn.textContent = "⏸︎ Pause"; playBtn.setAttribute("aria-label","Pause"); }
-    else { audio.pause(); playBtn.textContent = "▶ Stream"; playBtn.setAttribute("aria-label","Play"); }
-  } catch (e) { nowPlaying.textContent = `Stream blocked: ${e.message} — ${streamUrl}`; }
+    if (audio.paused) {
+      await audio.play();
+      playBtn.textContent = "⏸︎ Pause";
+      playBtn.setAttribute("aria-label", "Pause");
+    } else {
+      audio.pause();
+      playBtn.textContent = "▶ Stream";
+      playBtn.setAttribute("aria-label", "Play");
+    }
+  } catch (e) {
+    // AbortError = interrupted by another play()/pause() — harmless, ignore
+    if (e.name === "AbortError") {
+      // leave button as-is, user can tap again
+    } else {
+      nowPlaying.textContent = `Stream blocked: ${e.message} — ${streamUrl}`;
+    }
+  } finally {
+    playPending = false;
+    playBtn.disabled = false;
+    // sync label to actual state (covers race where pause happened externally)
+    if (!audio.paused && playBtn.textContent.startsWith("▶")) {
+      playBtn.textContent = "⏸︎ Pause";
+    }
+  }
 });
-audio.addEventListener("error", () => { nowPlaying.textContent = `Stream error — check ${streamUrl}`; });
+
+audio.addEventListener("playing", () => {
+  playBtn.textContent = "⏸︎ Pause";
+  playBtn.setAttribute("aria-label", "Pause");
+});
+audio.addEventListener("pause", () => {
+  if (!playPending) {
+    playBtn.textContent = "▶ Stream";
+    playBtn.setAttribute("aria-label", "Play");
+  }
+});
+audio.addEventListener("error", () => {
+  nowPlaying.textContent = `Stream error — check ${streamUrl}`;
+});
 
 buildPicker();
 initStream();
-const hash = location.hash.slice(1) || localStorage.getItem("tars:city") || CITIES[10].id; // default paris-ish
+const hash = location.hash.slice(1) || localStorage.getItem("tars:city") || CITIES[10].id;
 setCity(CITIES.some(c=>c.id===hash) ? hash : CITIES[0].id);
