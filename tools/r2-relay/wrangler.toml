@@ -1,0 +1,8 @@
+name = "tars-r2relay"
+main = "worker.js"
+compatibility_date = "2026-11-01"
+account_id = "abde7701b8d6408569edbdb8c96b01f7"
+
+[[r2_buckets]]
+binding = "LOOPS"
+bucket_name = "tars-loops"

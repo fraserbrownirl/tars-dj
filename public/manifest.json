@@ -1,0 +1,22 @@
+{
+  "cityLoops": {
+    "amsterdam": "https://pub-f443cfa20d11480ba421991226fd803c.r2.dev/loops/lofi-cities-amsterdam-loop-4min-1080p60.mp4",
+    "athens": "https://pub-f443cfa20d11480ba421991226fd803c.r2.dev/loops/lofi-cities-athens-loop-4min-1080p60.mp4",
+    "barcelona": "https://pub-f443cfa20d11480ba421991226fd803c.r2.dev/loops/lofi-cities-barcelona-loop-4min-1080p60.mp4",
+    "berlin": "https://pub-f443cfa20d11480ba421991226fd803c.r2.dev/loops/lofi-cities-berlin-loop-4min-1080p60.mp4",
+    "budapest": "https://pub-f443cfa20d11480ba421991226fd803c.r2.dev/loops/lofi-cities-budapest-loop-4min-1080p60.mp4",
+    "copenhagen": "https://pub-f443cfa20d11480ba421991226fd803c.r2.dev/loops/lofi-cities-copenhagen-loop-4min-1080p60.mp4",
+    "dublin": "https://pub-f443cfa20d11480ba421991226fd803c.r2.dev/loops/lofi-cities-dublin-loop-4min-1080p60.mp4",
+    "florence": "https://pub-f443cfa20d11480ba421991226fd803c.r2.dev/loops/lofi-cities-florence-loop-4min-1080p60.mp4",
+    "hamburg": "https://pub-f443cfa20d11480ba421991226fd803c.r2.dev/loops/lofi-cities-hamburg-loop-4min-1080p60.mp4",
+    "lisbon": "https://pub-f443cfa20d11480ba421991226fd803c.r2.dev/loops/lofi-cities-lisbon-loop-4min-1080p60.mp4",
+    "london": "https://pub-f443cfa20d11480ba421991226fd803c.r2.dev/loops/lofi-cities-london-loop-4min-1080p60.mp4",
+    "madrid": "https://pub-f443cfa20d11480ba421991226fd803c.r2.dev/loops/lofi-cities-madrid-loop-4min-1080p60.mp4",
+    "paris": "https://pub-f443cfa20d11480ba421991226fd803c.r2.dev/loops/lofi-cities-paris-loop-4min-1080p60.mp4",
+    "prague": "https://pub-f443cfa20d11480ba421991226fd803c.r2.dev/loops/lofi-cities-prague-loop-4min-1080p60.mp4",
+    "rome": "https://pub-f443cfa20d11480ba421991226fd803c.r2.dev/loops/lofi-cities-rome-loop-4min-1080p60.mp4",
+    "venice": "https://pub-f443cfa20d11480ba421991226fd803c.r2.dev/loops/lofi-cities-venice-loop-4min-1080p60.mp4"
+  },
+  "stream": "https://tars.dj/stream",
+  "sourceEvidence": "docs/rea/loficities-evidence.md"
+}

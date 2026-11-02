@@ -1,0 +1,10 @@
+# TARS DJ upload excludes (Vercel CLI does not honor .gitignore for these).
+# Video payload excluded until the R2/CDN discussion lands (see HANDOVER):
+# 16 × 1080p60 loops = 3.9G, doubled to 7.7G with dist/ copies — the API
+# aborts the upload. Site shell + /stream rewrite ship without them.
+public/loops/
+dist/
+loops/
+node_modules/
+.env*
+tools/
