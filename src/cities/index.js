@@ -73,3 +73,7 @@ export function loopUrl(city) {
 const BY_LONGITUDE = [...CITIES].sort((a, b) => a.lon - b.lon);
 export const WEST = BY_LONGITUDE.slice(0, BY_LONGITUDE.length / 2);
 export const EAST = BY_LONGITUDE.slice(BY_LONGITUDE.length / 2);
+
+// Drift route: every city west→east (Honolulu first, Sydney last), so
+// drifting from any city continues the round-the-world route (wraps).
+export const ROTATION_ORDER = BY_LONGITUDE.map((c) => c.id);

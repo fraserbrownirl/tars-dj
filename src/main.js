@@ -1,4 +1,4 @@
-import { CITIES, WEST, EAST, loopUrl } from "./cities/index.js";
+import { CITIES, WEST, EAST, ROTATION_ORDER, loopUrl } from "./cities/index.js";
 
 const MANIFEST_URL = "/manifest.json";
 const DEFAULT_STREAM = "https://tars.dj/stream";
@@ -15,6 +15,40 @@ video.loop = true; video.muted = true; video.playsInline = true;
 video.preload = "auto";
 let raf = 0, streamUrl = DEFAULT_STREAM;
 
+// --- Drift: auto-rotate west→east around the world at the 240s loop seam.
+// Default ON for visitors with no stored preference.
+const LOOP_SECONDS = 240;
+const driftBtn = document.getElementById("driftBtn");
+let drifting = localStorage.getItem("tars:drift") !== "off";
+let driftFallback = 0;   // setTimeout id, armed only while drifting
+let lastVideoTime = 0;   // wrap detection: a drop means the loop seam passed
+
+function setDrift(on) {
+  drifting = on;
+  localStorage.setItem("tars:drift", on ? "on" : "off");
+  driftBtn.textContent = on ? "◐ drift on" : "◐ drift off";
+  driftBtn.classList.toggle("active", on);
+  driftBtn.setAttribute("aria-pressed", String(on));
+  clearTimeout(driftFallback);
+  if (on) armDriftFallback();
+}
+
+// Load-error path only: if the video never becomes playable, the seam
+// watcher never runs — advance on wall clock so drift still moves.
+function armDriftFallback() {
+  clearTimeout(driftFallback);
+  driftFallback = setTimeout(() => {
+    if (drifting && video.readyState < 2) advanceDrift();
+  }, LOOP_SECONDS * 1000);
+}
+
+function advanceDrift() {
+  const i = ROTATION_ORDER.indexOf(current.id);
+  setCity(ROTATION_ORDER[(i + 1) % ROTATION_ORDER.length], { user: false });
+}
+
+driftBtn.addEventListener("click", () => setDrift(!drifting));
+
 function resize() {
   canvas.width = innerWidth * devicePixelRatio;
   canvas.height = innerHeight * devicePixelRatio;
@@ -24,6 +58,17 @@ function resize() {
 addEventListener("resize", resize); resize();
 
 function drawVideoFrame() {
+  // Seam watcher: only while drifting, only once frames flow (readyState≥2
+  // is also the guard against arming before the first frame). A drop in
+  // currentTime is the loop wrapping — ride the seam to the next city.
+  if (drifting && video.readyState >= 2) {
+    const t = video.currentTime;
+    if (lastVideoTime > 0 && t < lastVideoTime - 0.5) {
+      advanceDrift(); // setCity resets lastVideoTime — don't overwrite it
+    } else {
+      lastVideoTime = t;
+    }
+  }
   if (video.readyState >= 2 && video.videoWidth) {
     const cw = canvas.width, ch = canvas.height;
     const vw = video.videoWidth, vh = video.videoHeight;
@@ -39,9 +84,15 @@ function drawVideoFrame() {
 }
 raf = requestAnimationFrame(drawVideoFrame);
 
-function setCity(id) {
+function setCity(id, { user = true } = {}) {
   const c = CITIES.find(x => x.id === id) || CITIES[0];
+  // A hand-picked city is a "stay here" — drift pauses (persisted) until
+  // the listener turns it back on.
+  if (user && drifting) setDrift(false);
   current = c;
+  lastVideoTime = 0; // new video starts at 0 — never read as a wrap
+  clearTimeout(driftFallback);
+  if (drifting) armDriftFallback();
   const url = loopUrl(c);
   video.src = url; video.load(); video.play().catch(() => {});
   nowPlaying.textContent = `${c.label} · 240s loop`;
@@ -67,7 +118,7 @@ function buildPicker() {
     for (const c of cities) {
       const b = document.createElement("button");
       b.textContent = c.label; b.dataset.city = c.id;
-      b.addEventListener("click", () => setCity(c.id));
+      b.addEventListener("click", () => setCity(c.id, { user: true }));
       col.appendChild(b);
     }
     picker.appendChild(col);
@@ -144,7 +195,8 @@ audio.addEventListener("error", () => {
 buildPicker();
 initStream();
 const hash = location.hash.slice(1) || localStorage.getItem("tars:city") || "london";
-setCity(CITIES.some(c=>c.id===hash) ? hash : CITIES[0].id);
+setCity(CITIES.some(c=>c.id===hash) ? hash : CITIES[0].id, { user: false });
+setDrift(drifting); // paint the toggle; arms the fallback when on
 
 // Listener wish → the station's request pipeline. The QVAC LLM on the box
 // rewrites the wish into the channel's lofi vocabulary; ACE-Step composes it;
