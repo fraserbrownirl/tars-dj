@@ -144,6 +144,93 @@ const wishInput = document.getElementById("wishInput");
 const wishBtn = document.getElementById("wishBtn");
 const wishNote = document.getElementById("wishNote");
 
+// cid binds the human-clearance cookie to this browser (MEME.tg's shape:
+// client-minted id in localStorage, sent with every write; the server signs
+// clearance against it, so a stolen cookie fails for any other cid).
+const cid =
+  localStorage.getItem("tars:cid") ||
+  (() => {
+    const id = crypto.randomUUID();
+    localStorage.setItem("tars:cid", id);
+    return id;
+  })();
+
+// First-write Turnstile: the public sitekey rides on GET /api/prompt so this
+// static page bakes no per-env keys. Reads are never gated.
+let tsSiteKey = null;
+fetch("/api/prompt")
+  .then((r) => (r.ok ? r.json() : {}))
+  .then((b) => {
+    tsSiteKey = b.turnstile_site_key || null;
+  })
+  .catch(() => {});
+
+const tsModal = document.getElementById("tsModal");
+const tsWidget = document.getElementById("tsWidget");
+let tsScriptLoading = null;
+let tsWidgetId = null;
+
+function loadTurnstileScript() {
+  if (window.turnstile) return Promise.resolve();
+  if (!tsScriptLoading) {
+    tsScriptLoading = new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+  return tsScriptLoading;
+}
+
+async function postWish(text, turnstileToken) {
+  const r = await fetch("/api/prompt", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ text, cid, ...(turnstileToken ? { turnstileToken } : {}) }),
+  });
+  const body = await r.json().catch(() => ({}));
+  return { status: r.status, ok: r.ok, body };
+}
+
+async function sendWish(text) {
+  const first = await postWish(text);
+  if (first.ok) return first;
+  if (first.status === 403 && first.body.error === "turnstile") {
+    // First write: challenge, then resend the SAME text with the token.
+    // The solved token is never burned by a cheap reject — the server runs
+    // every in-process gate before Siteverify. A 503 means Cloudflare is
+    // down, not that the listener failed: no modal loop.
+    if (!tsSiteKey) return first;
+    tsModal.hidden = false;
+    try {
+      await loadTurnstileScript();
+      if (tsWidgetId !== null) {
+        window.turnstile.remove(tsWidgetId); // stale widget from an earlier challenge
+        tsWidgetId = null;
+      }
+      const token = await new Promise((resolve, reject) => {
+        tsWidgetId = window.turnstile.render(tsWidget, {
+          sitekey: tsSiteKey,
+          action: "wish",
+          callback: resolve,
+          "error-callback": () => reject(new Error("turnstile error")),
+          "expired-callback": () => reject(new Error("turnstile expired")),
+        });
+      });
+      window.turnstile.reset(tsWidgetId); // one-shot: never reattach a consumed token
+      tsModal.hidden = true;
+      if (!token) return first;
+      return await postWish(text, token);
+    } catch {
+      tsModal.hidden = true;
+      return first;
+    }
+  }
+  return first;
+}
+
 wishForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const text = wishInput.value.trim();
@@ -151,17 +238,14 @@ wishForm.addEventListener("submit", async (e) => {
   wishBtn.disabled = true;
   wishNote.textContent = "";
   try {
-    const r = await fetch("/api/prompt", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ text }),
-    });
-    const body = await r.json().catch(() => ({}));
+    const r = await sendWish(text);
     if (r.ok) {
       wishNote.textContent = "the station heard you — your wish shapes an upcoming track";
       wishInput.value = "";
+    } else if (r.status === 503) {
+      wishNote.textContent = "the human check is having a moment — try again shortly";
     } else {
-      wishNote.textContent = body.error || "the station is busy — try again in a moment";
+      wishNote.textContent = r.body.error || "the station is busy — try again in a moment";
     }
   } catch {
     wishNote.textContent = "can't reach the station right now";

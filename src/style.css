@@ -25,3 +25,29 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--
 .wish button:hover{border-color:var(--accent)}
 .wish button:disabled{opacity:.5;cursor:default}
 #wishNote{font-size:12px;color:var(--muted);white-space:nowrap}
+
+/* Human-check modal (first wish only; a signed cookie clears later writes) */
+.tsmodal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 20;
+}
+.tsmodal[hidden] {
+  display: none;
+}
+.tsmodal-box {
+  background: #14100d;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 20px 22px;
+  color: #f3ece2;
+  font-size: 14px;
+  min-height: 120px;
+}
+.tsmodal-box p {
+  margin: 0 0 12px;
+}
