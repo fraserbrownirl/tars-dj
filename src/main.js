@@ -133,7 +133,7 @@ audio.addEventListener("error", () => {
 
 buildPicker();
 initStream();
-const hash = location.hash.slice(1) || localStorage.getItem("tars:city") || CITIES[10].id;
+const hash = location.hash.slice(1) || localStorage.getItem("tars:city") || "london";
 setCity(CITIES.some(c=>c.id===hash) ? hash : CITIES[0].id);
 
 // Listener wish → the station's request pipeline. The QVAC LLM on the box
