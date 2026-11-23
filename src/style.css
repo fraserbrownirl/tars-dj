@@ -6,6 +6,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--
 .hud h1{margin:0;font-size:14px;letter-spacing:.08em;text-transform:uppercase}
 .hud h1 small{font-weight:400;opacity:.7}
 .hud-links{display:flex;gap:10px;font-size:12px}
+.hud-links,.hud-links .byline{color:var(--muted)}
 .hud-links a{color:var(--muted);text-decoration:none}
 .hud-links a:hover{color:var(--text)}
 .controls{position:fixed;left:12px;right:12px;bottom:12px;z-index:10;display:flex;flex-direction:column;gap:10px}
