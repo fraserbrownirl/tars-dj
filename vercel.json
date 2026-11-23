@@ -1,6 +1,7 @@
 {
   "rewrites": [
     { "source": "/stream", "destination": "https://your-upstream.example/stream" },
-    { "source": "/api/prompt", "destination": "https://your-upstream.example/api/prompt" }
+    { "source": "/api/prompt", "destination": "https://your-upstream.example/api/prompt" },
+    { "source": "/api/now", "destination": "https://your-upstream.example/api/now" }
   ]
 }

@@ -184,15 +184,50 @@ function loadTurnstileScript() {
   return tsScriptLoading;
 }
 
+// Credit fields persist like the cid — type them once, credited every time.
+const wishName = document.getElementById("wishName");
+const wishCountry = document.getElementById("wishCountry");
+wishName.value = localStorage.getItem("tars:name") || "";
+wishCountry.value = localStorage.getItem("tars:country") || "";
+
 async function postWish(text, turnstileToken) {
+  const name = wishName.value.trim();
+  const country = wishCountry.value.trim();
+  localStorage.setItem("tars:name", name);
+  localStorage.setItem("tars:country", country);
   const r = await fetch("/api/prompt", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ text, cid, ...(turnstileToken ? { turnstileToken } : {}) }),
+    body: JSON.stringify({
+      text,
+      cid,
+      ...(name ? { name } : {}),
+      ...(country ? { country } : {}),
+      ...(turnstileToken ? { turnstileToken } : {}),
+    }),
   });
   const body = await r.json().catch(() => ({}));
   return { status: r.status, ok: r.ok, body };
 }
+
+// On-air credit: while a wish holds the air, the station credits its wisher.
+const creditLine = document.getElementById("creditLine");
+async function pollCredit() {
+  try {
+    const r = await fetch("/api/now", { cache: "no-store" });
+    const { credit } = r.ok ? await r.json() : {};
+    if (credit && credit.name) {
+      creditLine.textContent = `☾ for ${credit.name}${credit.country ? ` from ${credit.country}` : ""}`;
+      creditLine.hidden = false;
+    } else {
+      creditLine.hidden = true;
+    }
+  } catch {
+    /* a missed poll hides nothing — the next one corrects */
+  }
+}
+pollCredit();
+setInterval(pollCredit, 30_000);
 
 async function sendWish(text) {
   const first = await postWish(text);

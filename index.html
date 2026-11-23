@@ -21,17 +21,37 @@
       <button id="playBtn" type="button" aria-label="Play">▶ Stream</button>
       <audio id="stream" preload="none"></audio>
       <span id="nowPlaying" aria-live="polite"></span>
+      <span id="creditLine" aria-live="polite" hidden></span>
     </div>
     <form class="wish" id="wishForm" autocomplete="off">
-      <input
-        id="wishInput"
-        type="text"
-        maxlength="120"
-        placeholder="Tell the station how the music should feel…"
-        aria-label="Your wish for the music"
-      />
-      <button id="wishBtn" type="submit" aria-label="Send wish">↗</button>
-      <span id="wishNote" aria-live="polite"></span>
+      <div class="wish-row">
+        <input
+          id="wishInput"
+          type="text"
+          maxlength="120"
+          placeholder="Tell the station how the music should feel…"
+          aria-label="Your wish for the music"
+        />
+        <button id="wishBtn" type="submit" aria-label="Send wish">↗</button>
+      </div>
+      <div class="wish-row wish-credit">
+        <input
+          id="wishName"
+          type="text"
+          maxlength="24"
+          placeholder="name"
+          aria-label="Your name for the on-air credit (optional)"
+        />
+        <input
+          id="wishCountry"
+          type="text"
+          maxlength="56"
+          placeholder="country"
+          aria-label="Your country for the on-air credit (optional)"
+        />
+        <span class="wish-credit-hint">credited on air when your track plays</span>
+        <span id="wishNote" aria-live="polite"></span>
+      </div>
     </form>
   </div>
   <div class="tsmodal" id="tsModal" hidden>
