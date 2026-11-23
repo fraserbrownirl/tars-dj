@@ -22,6 +22,17 @@
       <audio id="stream" preload="none"></audio>
       <span id="nowPlaying" aria-live="polite"></span>
     </div>
+    <form class="wish" id="wishForm" autocomplete="off">
+      <input
+        id="wishInput"
+        type="text"
+        maxlength="120"
+        placeholder="Tell the station how the music should feel…"
+        aria-label="Your wish for the music"
+      />
+      <button id="wishBtn" type="submit" aria-label="Send wish">↗</button>
+      <span id="wishNote" aria-live="polite"></span>
+    </form>
   </div>
   <script type="module" src="src/main.js"></script>
 </body>

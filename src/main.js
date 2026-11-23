@@ -135,3 +135,37 @@ buildPicker();
 initStream();
 const hash = location.hash.slice(1) || localStorage.getItem("tars:city") || CITIES[10].id;
 setCity(CITIES.some(c=>c.id===hash) ? hash : CITIES[0].id);
+
+// Listener wish → the station's request pipeline. The QVAC LLM on the box
+// rewrites the wish into the channel's lofi vocabulary; ACE-Step composes it;
+// it airs within minutes. Raw text never reaches a generator.
+const wishForm = document.getElementById("wishForm");
+const wishInput = document.getElementById("wishInput");
+const wishBtn = document.getElementById("wishBtn");
+const wishNote = document.getElementById("wishNote");
+
+wishForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const text = wishInput.value.trim();
+  if (text.length < 3) return;
+  wishBtn.disabled = true;
+  wishNote.textContent = "";
+  try {
+    const r = await fetch("/api/prompt", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    const body = await r.json().catch(() => ({}));
+    if (r.ok) {
+      wishNote.textContent = "the station heard you — your wish shapes an upcoming track";
+      wishInput.value = "";
+    } else {
+      wishNote.textContent = body.error || "the station is busy — try again in a moment";
+    }
+  } catch {
+    wishNote.textContent = "can't reach the station right now";
+  } finally {
+    wishBtn.disabled = false;
+  }
+});
