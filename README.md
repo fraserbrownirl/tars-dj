@@ -65,7 +65,7 @@ Pick a city. Hit play. The mix is already running — and if you wish for someth
 
 ## Cities
 
-56 owned 1080p60 night loops, 240 s each, served from Cloudflare R2 — the full four-collection set:
+56 owned 1080p60 night loops, 240 s each, served from Cloudflare R2 — the full four-collection set, artwork licensed from [LoFi Cities](https://loficities.com):
 
 Agra · Amsterdam · Athens · Bali · Bangkok · Barcelona · Berlin · Boston · Budapest · Buenos Aires · Cairo · Cape Town · Chicago · Chongqing · Copenhagen · Dubai · Dublin · Florence · Hamburg · Havana · Hong Kong · Honolulu · Istanbul · Kuala Lumpur · Kyoto · Las Vegas · Lisbon · London · Los Angeles · Madrid · Marrakech · Melbourne · Mexico City · Miami · Munich · New Delhi · New Orleans · New York · Osaka · Paris · Porto · Prague · Reykjavik · Rio · Rome · San Francisco · Seattle · Seoul · Singapore · Stockholm · Sydney · Taipei · Tokyo · Toronto · Vancouver · Venice
 
