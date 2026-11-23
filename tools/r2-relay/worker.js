@@ -1,5 +1,10 @@
 export default {
   async fetch(req, env) {
+    // Ephemeral unauthenticated-by-default relay: require the shared key
+    // for its whole (short) lifetime. Deploy with RELAY_KEY secret_text.
+    if (!env.RELAY_KEY || req.headers.get("x-relay-key") !== env.RELAY_KEY) {
+      return new Response("nope", { status: 401 });
+    }
     const url = new URL(req.url);
     const key = url.searchParams.get("key") || "";
     if (!key.startsWith("loops/") || key.includes("..")) {
