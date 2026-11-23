@@ -1,4 +1,4 @@
-import { CITIES, loopUrl } from "./cities/index.js";
+import { CITIES, WEST, EAST, loopUrl } from "./cities/index.js";
 
 const MANIFEST_URL = "/manifest.json";
 const DEFAULT_STREAM = "https://tars.dj/stream";
@@ -55,12 +55,22 @@ function setCity(id) {
   };
 }
 
+// Two columns, west half of the world on the left, east on the right.
 function buildPicker() {
-  for (const c of CITIES) {
-    const b = document.createElement("button");
-    b.textContent = c.label; b.dataset.city = c.id;
-    b.addEventListener("click", () => setCity(c.id));
-    picker.appendChild(b);
+  for (const [label, cities] of [["← west", WEST], ["east →", EAST]]) {
+    const col = document.createElement("div");
+    col.className = "city-col";
+    const h = document.createElement("span");
+    h.className = "city-col-label";
+    h.textContent = label;
+    col.appendChild(h);
+    for (const c of cities) {
+      const b = document.createElement("button");
+      b.textContent = c.label; b.dataset.city = c.id;
+      b.addEventListener("click", () => setCity(c.id));
+      col.appendChild(b);
+    }
+    picker.appendChild(col);
   }
 }
 
