@@ -4,7 +4,7 @@
 
 **[▶ Listen live — tars.dj](https://tars.dj)**
 
-Two autonomous DJs mix into each other 24/7 while the station's intelligence — **Tether's QVAC local-AI platform** — writes the music it plays. Send the station a wish and it composes your track on the spot, mixes it in on beat, and credits you on air. Thirty-seven cities after dark on the canvas.
+Two autonomous DJs mix into each other 24/7 while the station's intelligence — **Tether's QVAC local-AI platform** — writes the music it plays. Send the station a wish and it composes your track on the spot, mixes it in on beat, and credits you on air. Fifty-six cities after dark on the canvas.
 
 [![Live](https://img.shields.io/badge/live-tars.dj-ffc86e?style=for-the-badge)](https://tars.dj)
 [![Built on QVAC](https://img.shields.io/badge/built_on-QVAC_·_Tether_local--AI-05060f?style=flat-square)](https://qvac.tether.io/)
@@ -49,7 +49,7 @@ A QVAC LLM loads after dark, reads tap history, prompt health, and the energy ar
 | **QVAC — the intelligence** | On-device AI end to end: wish rewriting, ACE-Step composition, nightly taste advisor. Zero inference leaves the machine. |
 | **Conductor + LSDJ — the decks** | Audience-steered mixing on a Mac mini. Listeners tap *more* or *next*; two Magenta RealTime decks negotiate every handoff in phrase, on beat, in key. |
 | **Inbox — the door** | Rate-limited, Cloudflare Turnstile-verified wish intake. Moderation before rewrite; a byline is an abuse vector, so credits get the same scrutiny as wishes. |
-| **tars.dj — the room** | This repo. A canvas of 37 owned city-night loops, one Icecast stream, and the wish box. |
+| **tars.dj — the room** | This repo. A canvas of 56 owned city-night loops, one Icecast stream, and the wish box. |
 
 ---
 
@@ -65,9 +65,9 @@ Pick a city. Hit play. The mix is already running — and if you wish for someth
 
 ## Cities
 
-37 owned 1080p60 night loops, 240 s each, served from Cloudflare R2:
+56 owned 1080p60 night loops, 240 s each, served from Cloudflare R2 — the full four-collection set:
 
-Agra · Amsterdam · Athens · Bali · Barcelona · Berlin · Boston · Budapest · Buenos Aires · Chicago · Chongqing · Copenhagen · Dublin · Florence · Hamburg · Havana · Honolulu · Kuala Lumpur · Kyoto · Las Vegas · Lisbon · London · Los Angeles · Madrid · Marrakech · Melbourne · Miami · New Orleans · Paris · Porto · Prague · Reykjavik · Rome · Stockholm · Taipei · Toronto · Venice
+Agra · Amsterdam · Athens · Bali · Bangkok · Barcelona · Berlin · Boston · Budapest · Buenos Aires · Cairo · Cape Town · Chicago · Chongqing · Copenhagen · Dubai · Dublin · Florence · Hamburg · Havana · Hong Kong · Honolulu · Istanbul · Kuala Lumpur · Kyoto · Las Vegas · Lisbon · London · Los Angeles · Madrid · Marrakech · Melbourne · Mexico City · Miami · Munich · New Delhi · New Orleans · New York · Osaka · Paris · Porto · Prague · Reykjavik · Rio · Rome · San Francisco · Seattle · Seoul · Singapore · Stockholm · Sydney · Taipei · Tokyo · Toronto · Vancouver · Venice
 
 Source of truth: `src/cities/index.js`.
 
