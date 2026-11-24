@@ -322,7 +322,12 @@ addEventListener("online", () => {
 // first frame — only a deliberate pause ever silences the station.
 async function attemptAutoplay() {
   try {
-    await audio.play();
+    // Race the play promise: a stalled first connection can leave it
+    // pending forever, which would skip the muted fallback entirely.
+    await Promise.race([
+      audio.play(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("autoplay timeout")), 8000)),
+    ]);
     lastProgressAt = Date.now();
   } catch {
     audio.muted = true;
@@ -342,6 +347,14 @@ async function attemptAutoplay() {
     }
   }
 }
+
+// Gesture safety net (iOS/Safari gate playback behind a user gesture): any
+// interaction while we intend to be playing but aren't gets one more try.
+const kickstart = () => {
+  if (!userPaused && audio.paused) reconnect();
+};
+addEventListener("pointerdown", kickstart);
+addEventListener("keydown", kickstart);
 
 buildPicker();
 initStream().then(attemptAutoplay);
