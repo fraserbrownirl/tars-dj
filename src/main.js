@@ -172,16 +172,56 @@ async function initStream() {
 // quickly, or when src is reassigned mid-play(). It's not a stream failure.
 let playPending = false;
 
+// --- Stream resilience (2026-11-24: "watching continuously, it often stops
+// and stream has to be tapped again") ---
+// A live MP3 over the open internet dies eventually — a network blip, a
+// proxy recycling the connection, a phone sleeping. The <audio> element
+// treats every one of those as terminal until someone taps play again. Only
+// the user's own pause should be terminal; everything else reconnects with
+// backoff against a FRESH url (a dead edge socket must never be reused).
+let userPaused = true; // intent: only the play button changes this
+let reconnectTimer = 0;
+let reconnectDelay = 2000;
+let lastProgressAt = 0;
+
+function scheduleReconnect(reason) {
+  if (userPaused) return; // the user chose silence — never override intent
+  clearTimeout(reconnectTimer);
+  nowPlaying.textContent = `reconnecting… (${reason})`;
+  reconnectTimer = setTimeout(reconnect, reconnectDelay);
+  reconnectDelay = Math.min(reconnectDelay * 2, 30_000);
+}
+
+async function reconnect() {
+  if (userPaused) return;
+  try {
+    const sep = streamUrl.includes("?") ? "&" : "?";
+    audio.src = `${streamUrl}${sep}r=${Date.now()}`;
+    audio.load();
+    await audio.play();
+    reconnectDelay = 2000; // healthy again — reset backoff
+    lastProgressAt = Date.now();
+  } catch (e) {
+    if (e.name !== "AbortError") scheduleReconnect("retry");
+    else scheduleReconnect("retry");
+  }
+}
+
 playBtn.addEventListener("click", async () => {
   if (playPending) return;
   playPending = true;
   playBtn.disabled = true;
   try {
     if (audio.paused) {
+      userPaused = false;
+      reconnectDelay = 2000;
       await audio.play();
+      lastProgressAt = Date.now();
       playBtn.textContent = "⏸︎ Pause";
       playBtn.setAttribute("aria-label", "Pause");
     } else {
+      userPaused = true;
+      clearTimeout(reconnectTimer);
       audio.pause();
       playBtn.textContent = "▶ Stream";
       playBtn.setAttribute("aria-label", "Play");
@@ -192,6 +232,7 @@ playBtn.addEventListener("click", async () => {
       // leave button as-is, user can tap again
     } else {
       nowPlaying.textContent = `Stream blocked: ${e.message} — ${streamUrl}`;
+      scheduleReconnect("blocked");
     }
   } finally {
     playPending = false;
@@ -204,6 +245,7 @@ playBtn.addEventListener("click", async () => {
 });
 
 audio.addEventListener("playing", () => {
+  lastProgressAt = Date.now();
   playBtn.textContent = "⏸︎ Pause";
   playBtn.setAttribute("aria-label", "Pause");
 });
@@ -212,9 +254,27 @@ audio.addEventListener("pause", () => {
     playBtn.textContent = "▶ Stream";
     playBtn.setAttribute("aria-label", "Play");
   }
+  if (!userPaused && !playPending) scheduleReconnect("paused");
 });
-audio.addEventListener("error", () => {
-  nowPlaying.textContent = `Stream error — check ${streamUrl}`;
+audio.addEventListener("error", () => scheduleReconnect("stream error"));
+audio.addEventListener("ended", () => scheduleReconnect("ended"));
+audio.addEventListener("timeupdate", () => { lastProgressAt = Date.now(); });
+
+// Watchdog: covers the cases that fire no event — a stalled socket that
+// never errors, iOS suspending the element in the background.
+setInterval(() => {
+  if (userPaused || playPending) return;
+  if (audio.paused) return scheduleReconnect("silent");
+  if (lastProgressAt && Date.now() - lastProgressAt > 25_000) scheduleReconnect("stalled");
+}, 10_000);
+
+// Returning to the tab / regaining the network: recover immediately rather
+// than waiting out the backoff.
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && !userPaused && audio.paused) reconnect();
+});
+addEventListener("online", () => {
+  if (!userPaused && audio.paused) reconnect();
 });
 
 buildPicker();
