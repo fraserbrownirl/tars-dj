@@ -51,7 +51,7 @@ assert.match(headerBlob, /script-src/);
 assert.match(headerBlob, /media-src/);
 assert.match(headerBlob, /pub-f443cfa20d11480ba421991226fd803c\.r2\.dev/);
 assert.match(headerBlob, /challenges\.cloudflare\.com/);
-assert.doesNotMatch(headerBlob, /access-control-allow-origin","value":"\*"/);
+assert.doesNotMatch(headerBlob, /access-control-allow-origin","value":"\*"/i);
 
 // --- middleware present ---
 const mw = readFileSync(join(root, "middleware.js"), "utf8");
