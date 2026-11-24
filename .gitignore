@@ -8,5 +8,7 @@ node_modules/
 .env.local
 DRAFT-README.md
 docs/rea/HANDOVER.md
+scripts/ops-secrets.local.txt
+scripts/git-history-replacements.txt
 dist-preview/
 .tmp-draft-preview.md

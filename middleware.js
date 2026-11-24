@@ -12,15 +12,33 @@ export default async function middleware(request) {
       { status: 503, headers: { "content-type": "application/json" } },
     );
   }
+
+  let origin;
+  try {
+    origin = new URL(base).origin;
+  } catch {
+    return new Response(
+      JSON.stringify({ error: "upstream_misconfigured" }),
+      { status: 503, headers: { "content-type": "application/json" } },
+    );
+  }
+
   const src = new URL(request.url);
-  const origin = base.replace(/\/$/, "");
   const target = `${origin}${src.pathname}${src.search}`;
   const headers = new Headers(request.headers);
   headers.delete("host");
-  return fetch(target, {
+
+  const init = {
     method: request.method,
     headers,
-    body: request.method === "GET" || request.method === "HEAD" ? undefined : request.body,
     redirect: "manual",
-  });
+  };
+
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    init.body = request.body;
+    // Required when forwarding a streaming Request body on modern fetch.
+    init.duplex = "half";
+  }
+
+  return fetch(target, init);
 }
