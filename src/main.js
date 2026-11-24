@@ -240,7 +240,7 @@ function playWithTimeout(ms = 8000) {
 }
 
 async function reconnect() {
-  if (userPaused) return;
+  if (userPaused || playPending) return; // a click in flight owns playback
   try {
     const sep = streamUrl.includes("?") ? "&" : "?";
     audio.src = `${streamUrl}${sep}r=${Date.now()}`;
@@ -248,43 +248,56 @@ async function reconnect() {
     await playWithTimeout();
     reconnectDelay = 2000; // healthy again — reset backoff
     lastProgressAt = Date.now();
-  } catch {
+  } catch (e) {
+    // AbortError = a click superseded this attempt — it owns playback now.
+    if (e.name === "AbortError") { syncStreamUI(); return; }
     scheduleReconnect("retry");
   }
 }
 
+// A click is a gesture: it always wins over any in-flight gesture-less
+// play attempt, and it always means sound. Aborted attempts treat their
+// AbortError as "a click is driving now", never as failure.
 playBtn.addEventListener("click", async () => {
-  if (playPending) return;
-  playPending = true;
-  playBtn.disabled = true;
-  try {
-    if (audio.paused) {
-      userPaused = false;
-      reconnectDelay = 2000;
-      playBtn.textContent = "◌ …"; // immediate feedback while the stream connects
+  if (audio.paused) {
+    // Every click while paused is a fresh, gesture-backed play that
+    // supersedes any stalled attempt — never swallowed by a disabled
+    // button, never muted by a policy fallback that lost the race.
+    userPaused = false;
+    reconnectDelay = 2000;
+    audio.muted = false; // clicking Stream means sound
+    playBtn.textContent = "◌ …"; // immediate feedback while the stream connects
+    playPending = true; // watchdog/reconnect yield to the gesture
+    try {
       await playWithTimeout();
       lastProgressAt = Date.now();
-    } else if (audio.muted) {
-      // Playing muted — the state the button advertises is "tap for sound",
-      // so this click unmutes instead of pausing into deeper silence.
-      audio.muted = false;
-    } else {
-      userPaused = true;
-      clearTimeout(reconnectTimer);
-      audio.pause();
+    } catch (e) {
+      if (e.name !== "AbortError") {
+        nowPlaying.textContent = `Stream blocked: ${e.message} — ${streamUrl}`;
+        scheduleReconnect("blocked");
+      }
+    } finally {
+      playPending = false;
+      syncStreamUI();
     }
-  } catch (e) {
-    // AbortError = interrupted by another play()/pause() — harmless, ignore
-    if (e.name === "AbortError") {
-      // leave button as-is, user can tap again
-    } else {
-      nowPlaying.textContent = `Stream blocked: ${e.message} — ${streamUrl}`;
-      scheduleReconnect("blocked");
-    }
+    return;
+  }
+  if (audio.muted) {
+    // Playing muted — the state the button advertises is "tap for sound",
+    // so this click unmutes instead of pausing into deeper silence.
+    audio.muted = false; // volumechange syncs the label
+    return;
+  }
+  // Playing with sound → pause (guarded so a double-click can't toggle back).
+  if (playPending) return;
+  playPending = true;
+  try {
+    userPaused = true;
+    clearTimeout(reconnectTimer);
+    audio.pause();
   } finally {
     playPending = false;
-    playBtn.disabled = false;
-    syncStreamUI(); // label follows real state, not the path we took
+    syncStreamUI();
   }
 });
 
@@ -348,10 +361,17 @@ async function attemptAutoplay() {
     await playWithTimeout();
     lastProgressAt = Date.now();
   } catch (e) {
+    if (e.name === "AbortError" || !audio.paused) {
+      // A click superseded this attempt (or playback already started) —
+      // the gesture wins; never mute out from under it.
+      syncStreamUI();
+      return;
+    }
     if (e.name !== "NotAllowedError") {
       // Stalled or blocked for a non-policy reason — reconnect against a
       // fresh URL; muting would only hide a network problem.
       scheduleReconnect("autoplay");
+      syncStreamUI();
       return;
     }
     // Autoplay policy blocks unmuted start: begin muted (always allowed)
@@ -360,11 +380,13 @@ async function attemptAutoplay() {
     try {
       await playWithTimeout();
       lastProgressAt = Date.now();
-      const unmute = () => { audio.muted = false; }; // volumechange syncs the UI
+      // Tap-anywhere unmute — except on the button itself, whose click
+      // handler owns the unmute (otherwise one tap would unmute AND pause).
+      const unmute = (ev) => { if (ev.target !== playBtn) audio.muted = false; };
       addEventListener("pointerdown", unmute, { once: true });
       addEventListener("keydown", unmute, { once: true });
     } catch {
-      /* even muted playback blocked — the Stream button stands by */
+      /* aborted by a click, or even muted playback blocked — button stands by */
     }
   }
   syncStreamUI();
@@ -372,7 +394,10 @@ async function attemptAutoplay() {
 
 // Gesture safety net (iOS/Safari gate playback behind a user gesture): any
 // interaction while we intend to be playing but aren't gets one more try.
-const kickstart = () => {
+const kickstart = (e) => {
+  // The button's own click handler owns playback — don't race it with a
+  // gesture-less reconnect on the same tap.
+  if (e.target === playBtn) return;
   if (!userPaused && audio.paused) reconnect();
 };
 addEventListener("pointerdown", kickstart);
