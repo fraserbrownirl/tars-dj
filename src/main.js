@@ -230,18 +230,26 @@ function scheduleReconnect(reason) {
   reconnectDelay = Math.min(reconnectDelay * 2, 30_000);
 }
 
+/** Every play() races a timeout: a stalled connection leaves the promise
+ * pending forever, freezing whatever UI was waiting on it. */
+function playWithTimeout(ms = 8000) {
+  return Promise.race([
+    audio.play(),
+    new Promise((_, reject) => setTimeout(() => reject(new Error("play timeout")), ms)),
+  ]);
+}
+
 async function reconnect() {
   if (userPaused) return;
   try {
     const sep = streamUrl.includes("?") ? "&" : "?";
     audio.src = `${streamUrl}${sep}r=${Date.now()}`;
     audio.load();
-    await audio.play();
+    await playWithTimeout();
     reconnectDelay = 2000; // healthy again — reset backoff
     lastProgressAt = Date.now();
-  } catch (e) {
-    if (e.name !== "AbortError") scheduleReconnect("retry");
-    else scheduleReconnect("retry");
+  } catch {
+    scheduleReconnect("retry");
   }
 }
 
@@ -253,7 +261,8 @@ playBtn.addEventListener("click", async () => {
     if (audio.paused) {
       userPaused = false;
       reconnectDelay = 2000;
-      await audio.play();
+      playBtn.textContent = "◌ …"; // immediate feedback while the stream connects
+      await playWithTimeout();
       lastProgressAt = Date.now();
       playBtn.textContent = "⏸︎ Pause";
       playBtn.setAttribute("aria-label", "Pause");
@@ -324,15 +333,12 @@ async function attemptAutoplay() {
   try {
     // Race the play promise: a stalled first connection can leave it
     // pending forever, which would skip the muted fallback entirely.
-    await Promise.race([
-      audio.play(),
-      new Promise((_, reject) => setTimeout(() => reject(new Error("autoplay timeout")), 8000)),
-    ]);
+    await playWithTimeout();
     lastProgressAt = Date.now();
   } catch {
     audio.muted = true;
     try {
-      await audio.play();
+      await playWithTimeout();
       lastProgressAt = Date.now();
       const HINT = " · tap for sound";
       nowPlaying.textContent += HINT;
