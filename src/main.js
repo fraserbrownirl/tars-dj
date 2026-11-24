@@ -63,7 +63,7 @@ let lastVideoTime = 0;   // wrap detection: a drop means the loop seam passed
 function setDrift(on) {
   drifting = on;
   localStorage.setItem("tars:drift", on ? "on" : "off");
-  driftBtn.textContent = on ? "◐ drift on" : "◐ drift off";
+  driftBtn.textContent = on ? "◐ travel on" : "◐ travel off";
   driftBtn.classList.toggle("active", on);
   driftBtn.setAttribute("aria-pressed", String(on));
   clearTimeout(driftFallback);
