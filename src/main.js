@@ -36,9 +36,20 @@ const playBtn = document.getElementById("playBtn");
 const nowPlaying = document.getElementById("nowPlaying");
 
 let current = CITIES[0];
-let video = document.createElement("video");
-video.loop = true; video.muted = true; video.playsInline = true;
-video.preload = "auto";
+function makeLoopVideo() {
+  const v = document.createElement("video");
+  v.loop = true; v.muted = true; v.playsInline = true;
+  v.preload = "auto";
+  return v;
+}
+let video = makeLoopVideo();
+// Preloader: warms the NEXT city on the drift route while the current one
+// plays, so the seam switch promotes an already-buffered element instead of
+// starting a cold fetch (the black gap between cities).
+let preloader = makeLoopVideo();
+// Once any frame has been drawn we never clear to black again — the last
+// city stays on screen until the next one's frames arrive.
+let hasFrame = false;
 let raf = 0, streamUrl = DEFAULT_STREAM;
 
 // --- Drift: auto-rotate west→east around the world at the 240s loop seam.
@@ -70,7 +81,17 @@ function armDriftFallback() {
 
 function advanceDrift() {
   const i = ROTATION_ORDER.indexOf(current.id);
-  setCity(ROTATION_ORDER[(i + 1) % ROTATION_ORDER.length], { user: false });
+  const nextId = ROTATION_ORDER[(i + 1) % ROTATION_ORDER.length];
+  // Promote the preloader when it is already buffering the next city: the
+  // switch costs no fetch, and the old frame holds until new frames draw.
+  if (preloader.dataset.city === nextId && preloader.readyState >= 2) {
+    const old = video;
+    video = preloader;
+    preloader = old;
+    setCity(nextId, { user: false, preloaded: true });
+  } else {
+    setCity(nextId, { user: false });
+  }
 }
 
 driftBtn.addEventListener("click", () => setDrift(!drifting));
@@ -101,7 +122,10 @@ function drawVideoFrame() {
     const scale = Math.max(cw / vw, ch / vh);
     const w = vw * scale, h = vh * scale;
     ctx.drawImage(video, (cw - w) / 2, (ch - h) / 2, w, h);
-  } else {
+    hasFrame = true;
+  } else if (!hasFrame) {
+    // First load only. After any frame has been shown the previous city
+    // stays up while the next one buffers — no black screen between cities.
     ctx.fillStyle = "#07081a"; ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = "#9ba0cc"; ctx.font = `${14 * devicePixelRatio}px ui-sans-serif`;
     ctx.fillText("Loading loop…", 16 * devicePixelRatio, 28 * devicePixelRatio);
@@ -110,7 +134,7 @@ function drawVideoFrame() {
 }
 raf = requestAnimationFrame(drawVideoFrame);
 
-function setCity(id, { user = true } = {}) {
+function setCity(id, { user = true, preloaded = false } = {}) {
   const c = CITIES.find(x => x.id === id) || CITIES[0];
   // A hand-picked city is a "stay here" — drift pauses (persisted) until
   // the listener turns it back on.
@@ -119,17 +143,31 @@ function setCity(id, { user = true } = {}) {
   lastVideoTime = 0; // new video starts at 0 — never read as a wrap
   clearTimeout(driftFallback);
   if (drifting) armDriftFallback();
-  const url = loopUrl(c);
-  video.src = url; video.load(); video.play().catch(() => {});
-  nowPlaying.textContent = `${c.label} · 240s loop`;
+  if (!preloaded) {
+    video.src = loopUrl(c); video.load();
+  }
+  video.dataset.city = c.id;
+  video.play().catch(() => {});
+  // The previous city stays on screen while this one buffers — the status
+  // line says where we're headed ("taking you to…") until frames arrive.
+  nowPlaying.textContent = `→ ${c.label}…`;
+  video.onplaying = () => { nowPlaying.textContent = `${c.label} · 240s loop`; };
   for (const b of picker.querySelectorAll("button")) b.classList.toggle("active", b.dataset.city === c.id);
   history.replaceState(null, "", `#${c.id}`);
   document.title = `${c.label} · TARS DJ`;
   localStorage.setItem("tars:city", c.id);
   video.onerror = () => {
+    // Keep the last good frame on screen; just say what happened.
     nowPlaying.textContent = `${c.label} — video still uploading. Stream still works.`;
-    ctx.fillStyle = "#07081a"; ctx.fillRect(0,0,canvas.width,canvas.height);
   };
+  // Warm the next city on the route so drift's seam switch is a promotion,
+  // not a cold fetch.
+  const nextId = ROTATION_ORDER[(ROTATION_ORDER.indexOf(c.id) + 1) % ROTATION_ORDER.length];
+  if (preloader.dataset.city !== nextId) {
+    preloader.dataset.city = nextId;
+    preloader.src = loopUrl(CITIES.find(x => x.id === nextId));
+    preloader.load();
+  }
 }
 
 // Two columns, west half of the world on the left, east on the right.
