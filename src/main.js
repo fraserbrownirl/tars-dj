@@ -217,7 +217,7 @@ let playPending = false;
 // treats every one of those as terminal until someone taps play again. Only
 // the user's own pause should be terminal; everything else reconnects with
 // backoff against a FRESH url (a dead edge socket must never be reused).
-let userPaused = true; // intent: only the play button changes this
+let userPaused = false; // intent: the station is already playing on arrival
 let reconnectTimer = 0;
 let reconnectDelay = 2000;
 let lastProgressAt = 0;
@@ -315,8 +315,36 @@ addEventListener("online", () => {
   if (!userPaused && audio.paused) reconnect();
 });
 
+// Autoplay on arrival: the station is already running when you land.
+// Unmuted play is allowed for visitors with media engagement (returning
+// listeners); everyone else gets the always-allowed muted start, and the
+// first tap anywhere unmutes. Either way the button reads Pause from the
+// first frame — only a deliberate pause ever silences the station.
+async function attemptAutoplay() {
+  try {
+    await audio.play();
+    lastProgressAt = Date.now();
+  } catch {
+    audio.muted = true;
+    try {
+      await audio.play();
+      lastProgressAt = Date.now();
+      const HINT = " · tap for sound";
+      nowPlaying.textContent += HINT;
+      const unmute = () => {
+        audio.muted = false;
+        nowPlaying.textContent = nowPlaying.textContent.replace(HINT, "");
+      };
+      addEventListener("pointerdown", unmute, { once: true });
+      addEventListener("keydown", unmute, { once: true });
+    } catch {
+      /* even muted playback blocked — the Stream button stands by */
+    }
+  }
+}
+
 buildPicker();
-initStream();
+initStream().then(attemptAutoplay);
 const hash = location.hash.slice(1) || localStorage.getItem("tars:city") || "london";
 setCity(CITIES.some(c=>c.id===hash) ? hash : CITIES[0].id, { user: false });
 setDrift(drifting); // paint the toggle; arms the fallback when on
