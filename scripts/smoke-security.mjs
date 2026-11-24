@@ -47,6 +47,11 @@ assert.ok(!("rewrites" in vercel) || !JSON.stringify(vercel.rewrites || []).incl
 const headerBlob = JSON.stringify(vercel.headers || []);
 assert.match(headerBlob, /frame-ancestors/);
 assert.match(headerBlob, /X-Frame-Options/);
+assert.match(headerBlob, /script-src/);
+assert.match(headerBlob, /media-src/);
+assert.match(headerBlob, /pub-f443cfa20d11480ba421991226fd803c\.r2\.dev/);
+assert.match(headerBlob, /challenges\.cloudflare\.com/);
+assert.doesNotMatch(headerBlob, /access-control-allow-origin","value":"\*"/);
 
 // --- middleware present ---
 const mw = readFileSync(join(root, "middleware.js"), "utf8");
