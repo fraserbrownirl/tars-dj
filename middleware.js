@@ -1,5 +1,8 @@
 // Vercel Edge: proxy /stream and /api/* to the box. Set TARS_UPSTREAM in project env
 // (e.g. https://your-origin.example) — never commit the live upstream in git.
+// TARS_ORIGIN_KEY (project env) is the shared key the origin's Caddy requires on
+// /api/* — it is what makes the origin answer only to this deployment, and what
+// makes X-Forwarded-For (hence per-listener rate limits) trustworthy.
 export const config = {
   matcher: ["/stream", "/api/:path*"],
 };
@@ -27,6 +30,8 @@ export default async function middleware(request) {
   const target = `${origin}${src.pathname}${src.search}`;
   const headers = new Headers(request.headers);
   headers.delete("host");
+  const originKey = process.env.TARS_ORIGIN_KEY;
+  if (originKey) headers.set("x-tars-origin-key", originKey);
 
   const init = {
     method: request.method,

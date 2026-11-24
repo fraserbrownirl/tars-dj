@@ -53,6 +53,11 @@ assert.match(headerBlob, /pub-f443cfa20d11480ba421991226fd803c\.r2\.dev/);
 assert.match(headerBlob, /challenges\.cloudflare\.com/);
 assert.doesNotMatch(headerBlob, /access-control-allow-origin","value":"\*"/i);
 
+// The middleware must present the origin-lockdown key, or the origin 404s /api/*.
+const middlewareSrc = readFileSync(join(root, "middleware.js"), "utf8");
+assert.match(middlewareSrc, /TARS_ORIGIN_KEY/);
+assert.match(middlewareSrc, /x-tars-origin-key/);
+
 // --- middleware present ---
 const mw = readFileSync(join(root, "middleware.js"), "utf8");
 assert.match(mw, /TARS_UPSTREAM/);
