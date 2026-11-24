@@ -93,19 +93,23 @@ The engine lives in the private monorepo. This repo is the public radio surface 
 
 ```bash
 npm i
-npm run dev      # http://127.0.0.1:5173
+cp env.example .env.local    # set TARS_UPSTREAM to your box origin (https, no trailing slash)
+npm run dev                  # http://127.0.0.1:5173 — proxies /api and /stream when .env.local is set
 npm run build
 ```
 
-Stream URL comes from `public/manifest.json`. City state: `#hash` + `localStorage.tars:city`; drift preference: `localStorage.tars:drift`.
+Stream URL comes from `public/manifest.json` (allowlisted to `tars.dj` / same-origin). City state: `#hash` + `localStorage.tars:city`; drift preference: `localStorage.tars:drift`.
 
 ## Deploy
 
+Set **Vercel project env** `TARS_UPSTREAM` (same value as local — box Caddy origin, `https://…` with no trailing slash). Edge `middleware.js` proxies `/stream` and `/api/*`; it is not committed in `vercel.json` rewrites.
+
 ```bash
+npm run check:config   # optional sanity check with TARS_UPSTREAM exported
 vercel deploy --prod --yes   # frsr/tars-dj → tars.dj
 ```
 
-Loops go to R2 (`tars-loops` bucket), not the Vercel upload. Adding cities: `docs/rea/HANDOVER.md`.
+Loops go to R2 (`tars-loops` bucket), not the Vercel upload. Adding cities: see `docs/rea/HANDOVER.example.md` (full runbook is local-only, gitignored).
 
 ---
 

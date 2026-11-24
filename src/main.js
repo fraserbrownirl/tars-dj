@@ -2,6 +2,32 @@ import { CITIES, WEST, EAST, ROTATION_ORDER, loopUrl } from "./cities/index.js";
 
 const MANIFEST_URL = "/manifest.json";
 const DEFAULT_STREAM = "https://tars.dj/stream";
+const WISH_TEXT_MAX = 120;
+const WISH_NAME_MAX = 24;
+const WISH_COUNTRY_MAX = 56;
+
+function allowedStreamHosts() {
+  const hosts = new Set([location.hostname, "tars.dj", "www.tars.dj"]);
+  return hosts;
+}
+
+function resolveStreamUrl(raw) {
+  if (!raw || typeof raw !== "string") return DEFAULT_STREAM;
+  try {
+    const u = new URL(raw, location.origin);
+    if (u.protocol !== "https:" && u.protocol !== "http:") return DEFAULT_STREAM;
+    if (!allowedStreamHosts().has(u.hostname)) return DEFAULT_STREAM;
+    return u.href;
+  } catch {
+    return DEFAULT_STREAM;
+  }
+}
+
+function sanitizeWishField(value, maxLen) {
+  const collapsed = String(value).replace(/[\r\n\u2028\u2029]+/g, " ").trim();
+  if (collapsed.length <= maxLen) return collapsed;
+  return collapsed.slice(0, maxLen);
+}
 const canvas = document.getElementById("screen");
 const ctx = canvas.getContext("2d", { alpha: false });
 const picker = document.getElementById("cityPicker");
@@ -130,12 +156,11 @@ async function initStream() {
     const r = await fetch(MANIFEST_URL, { cache: "no-store" });
     if (r.ok) {
       const m = await r.json();
-      if (m.stream && m.stream !== streamUrl) {
-        // Only re-assign if changed and not already playing (avoids interrupting a pending play())
+      const next = resolveStreamUrl(m.stream);
+      if (next && next !== streamUrl) {
         const wasPaused = audio.paused;
-        streamUrl = m.stream;
-        if (wasPaused && !audio.src) audio.src = streamUrl;
-        else if (wasPaused) audio.src = streamUrl;
+        streamUrl = next;
+        if (wasPaused) audio.src = streamUrl;
       }
     }
   } catch {}
@@ -253,8 +278,9 @@ wishName.value = localStorage.getItem("tars:name") || "";
 wishCountry.value = localStorage.getItem("tars:country") || "";
 
 async function postWish(text, turnstileToken) {
-  const name = wishName.value.trim();
-  const country = wishCountry.value.trim();
+  const name = sanitizeWishField(wishName.value, WISH_NAME_MAX);
+  const country = sanitizeWishField(wishCountry.value, WISH_COUNTRY_MAX);
+  text = sanitizeWishField(text, WISH_TEXT_MAX);
   localStorage.setItem("tars:name", name);
   localStorage.setItem("tars:country", country);
   const r = await fetch("/api/prompt", {
@@ -330,7 +356,7 @@ async function sendWish(text) {
 
 wishForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const text = wishInput.value.trim();
+  const text = sanitizeWishField(wishInput.value, WISH_TEXT_MAX);
   if (text.length < 3) return;
   wishBtn.disabled = true;
   wishNote.textContent = "";

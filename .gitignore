@@ -5,5 +5,8 @@ node_modules/
 .vercel/
 .vercel
 .env*
+.env.local
+DRAFT-README.md
+docs/rea/HANDOVER.md
 dist-preview/
 .tmp-draft-preview.md
