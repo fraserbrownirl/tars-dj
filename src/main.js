@@ -264,14 +264,14 @@ playBtn.addEventListener("click", async () => {
       playBtn.textContent = "◌ …"; // immediate feedback while the stream connects
       await playWithTimeout();
       lastProgressAt = Date.now();
-      playBtn.textContent = "⏸︎ Pause";
-      playBtn.setAttribute("aria-label", "Pause");
+    } else if (audio.muted) {
+      // Playing muted — the state the button advertises is "tap for sound",
+      // so this click unmutes instead of pausing into deeper silence.
+      audio.muted = false;
     } else {
       userPaused = true;
       clearTimeout(reconnectTimer);
       audio.pause();
-      playBtn.textContent = "▶ Stream";
-      playBtn.setAttribute("aria-label", "Play");
     }
   } catch (e) {
     // AbortError = interrupted by another play()/pause() — harmless, ignore
@@ -284,23 +284,16 @@ playBtn.addEventListener("click", async () => {
   } finally {
     playPending = false;
     playBtn.disabled = false;
-    // sync label to actual state (covers race where pause happened externally)
-    if (!audio.paused && playBtn.textContent.startsWith("▶")) {
-      playBtn.textContent = "⏸︎ Pause";
-    }
+    syncStreamUI(); // label follows real state, not the path we took
   }
 });
 
 audio.addEventListener("playing", () => {
   lastProgressAt = Date.now();
-  playBtn.textContent = "⏸︎ Pause";
-  playBtn.setAttribute("aria-label", "Pause");
+  syncStreamUI();
 });
 audio.addEventListener("pause", () => {
-  if (!playPending) {
-    playBtn.textContent = "▶ Stream";
-    playBtn.setAttribute("aria-label", "Play");
-  }
+  if (!playPending) syncStreamUI();
   if (!userPaused && !playPending) scheduleReconnect("paused");
 });
 audio.addEventListener("error", () => scheduleReconnect("stream error"));
@@ -329,29 +322,52 @@ addEventListener("online", () => {
 // listeners); everyone else gets the always-allowed muted start, and the
 // first tap anywhere unmutes. Either way the button reads Pause from the
 // first frame — only a deliberate pause ever silences the station.
+// The button is the one honest summary of stream state — nothing else
+// overwrites it (the nowPlaying line belongs to the city video). Paused →
+// Stream; playing but muted → say so, and the fix is one tap; playing →
+// Pause. Every path that can change state runs through here.
+function syncStreamUI() {
+  if (audio.paused) {
+    playBtn.textContent = "▶ Stream";
+    playBtn.setAttribute("aria-label", "Play");
+  } else if (audio.muted) {
+    playBtn.textContent = "🔇 sound off — tap anywhere";
+    playBtn.setAttribute("aria-label", "Unmute");
+  } else {
+    playBtn.textContent = "⏸︎ Pause";
+    playBtn.setAttribute("aria-label", "Pause");
+  }
+}
+audio.addEventListener("volumechange", syncStreamUI);
+
 async function attemptAutoplay() {
+  playBtn.textContent = "◌ …";
   try {
     // Race the play promise: a stalled first connection can leave it
     // pending forever, which would skip the muted fallback entirely.
     await playWithTimeout();
     lastProgressAt = Date.now();
-  } catch {
+  } catch (e) {
+    if (e.name !== "NotAllowedError") {
+      // Stalled or blocked for a non-policy reason — reconnect against a
+      // fresh URL; muting would only hide a network problem.
+      scheduleReconnect("autoplay");
+      return;
+    }
+    // Autoplay policy blocks unmuted start: begin muted (always allowed)
+    // and let syncStreamUI say so on the button — any tap unmutes.
     audio.muted = true;
     try {
       await playWithTimeout();
       lastProgressAt = Date.now();
-      const HINT = " · tap for sound";
-      nowPlaying.textContent += HINT;
-      const unmute = () => {
-        audio.muted = false;
-        nowPlaying.textContent = nowPlaying.textContent.replace(HINT, "");
-      };
+      const unmute = () => { audio.muted = false; }; // volumechange syncs the UI
       addEventListener("pointerdown", unmute, { once: true });
       addEventListener("keydown", unmute, { once: true });
     } catch {
       /* even muted playback blocked — the Stream button stands by */
     }
   }
+  syncStreamUI();
 }
 
 // Gesture safety net (iOS/Safari gate playback behind a user gesture): any
