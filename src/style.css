@@ -16,6 +16,8 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--
    column boxes so the canvas stays clickable between them. */
 .city-picker{position:fixed;top:52px;bottom:150px;left:14px;right:14px;z-index:10;display:flex;justify-content:space-between;pointer-events:none}
 .city-col{display:flex;flex-direction:column;justify-content:space-evenly;pointer-events:auto;min-width:0}
+/* Chips hug their labels in both columns — flex-start/end, never stretch. */
+.city-col:first-child{align-items:flex-start}
 .city-col:last-child{align-items:flex-end}
 .city-col-label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
 /* Compact chips: readable buttons again (~23px rows), never wrapping;
